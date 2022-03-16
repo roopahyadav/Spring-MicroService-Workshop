@@ -33,13 +33,16 @@ public class MovieCatalogResource {
     public List<CatalogItem> getCatalog(@PathVariable String userId) {
 
 
-//        List<Rating> ratings = Arrays.asList(new Rating("abc",4),
-//        new Rating("Xyz",5));
-
       UserRating userRating =  restTemplate.getForObject("http://movie-rating-service/ratings/user/"+userId, UserRating.class);
 
        return userRating.getRatings().stream().map(rating-> {
 
+       Movie movie = restTemplate.getForObject("http://movie-info-service/movies/" + rating.getMovieId(),Movie.class);
+         return   new CatalogItem(movie.getName(),movie.getDescription(), rating.getRating());
+       }).collect(Collectors.toList());
+
+
+       /* Connecting via web client builder*/
 //           Movie movie = builder.build()
 //               .get()
 //               .uri("http://localhost:8082/movies/" + rating.getMovieId())
@@ -47,12 +50,5 @@ public class MovieCatalogResource {
 //               .bodyToMono(Movie.class)
 //               .block();
 
-       Movie movie = restTemplate.getForObject("http://movie-info-service/movies/" + rating.getMovieId(),Movie.class);
-         return   new CatalogItem(movie.getName(),movie.getDescription(), rating.getRating());
-       }).collect(Collectors.toList());
-
-//       return Collections.singletonList(
-//               new CatalogItem("Taitanic","taitanic love story", 4)
-//       );
     }
 }
