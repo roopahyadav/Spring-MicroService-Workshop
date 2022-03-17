@@ -5,7 +5,10 @@ import com.netflix.ribbon.proxy.annotation.Hystrix;
 import io.javabrains.moviecatalogservice.model.CatalogItem;
 import io.javabrains.moviecatalogservice.model.Movie;
 
+import io.javabrains.moviecatalogservice.model.Rating;
 import io.javabrains.moviecatalogservice.model.UserRating;
+import io.javabrains.moviecatalogservice.services.MovieInfo;
+import io.javabrains.moviecatalogservice.services.UserRatingInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.udp.UdpServer;
 
 
 import java.util.Arrays;
@@ -32,18 +36,19 @@ public class MovieCatalogResource {
     @Autowired
     private WebClient.Builder builder;
 
+    @Autowired
+    private UserRatingInfo userRatingInfo;
+
+    @Autowired
+    private MovieInfo movieInfo;
+
     @RequestMapping("/{userId}")
-    @HystrixCommand(fallbackMethod = "getFallBackCatalog")
     public List<CatalogItem> getCatalog(@PathVariable String userId) {
 
 
-      UserRating userRating =  restTemplate.getForObject("http://movie-rating-service/ratings/user/"+userId, UserRating.class);
+      UserRating userRating =  userRatingInfo.getUserRating(userId);
 
-       return userRating.getRatings().stream().map(rating-> {
-
-       Movie movie = restTemplate.getForObject("http://movie-info-service/movies/" + rating.getMovieId(),Movie.class);
-         return   new CatalogItem(movie.getName(),movie.getDescription(), rating.getRating());
-       }).collect(Collectors.toList());
+       return userRating.getRatings().stream().map(rating-> movieInfo.getCatalogInfo(rating)).collect(Collectors.toList());
 
 
        /* Connecting via web client builder*/
@@ -60,4 +65,5 @@ public class MovieCatalogResource {
         return  Arrays.asList(new CatalogItem("No movie","",0));
 
     }
+
 }
